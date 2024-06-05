@@ -1,6 +1,15 @@
+
 from operator import itemgetter
 import requests
 import datetime
+
+
+
+        
+
+
+
+
 
 BASE_URL = "https://api.the-odds-api.com/v4/sports"
 API_KEY = "31a579d1084fc35eab5070dfa28ea781"
@@ -22,7 +31,7 @@ def get_average_total_points_of_game(game):
             else:
                 raise ArithmeticError(f"For some reason {bookmaker['title']} has different values for over({over}) and under({under})")
     average_total_points = total_points_sum / len(game['bookmakers'])
-    return average_total_points
+    return round(average_total_points)
 
 
 def get_average_home_weightings(game):
@@ -102,7 +111,7 @@ def get_rankings(home_game_average_list):
         else:
             winner = game['away']
 
-        return_string += f"{game['home']} vs {game['away']}\tWinner: {winner}\tPriority: {game['priority']}\tGame total points: {game['total_points']}\n"
+        return_string += f"**{game['home']} vs {game['away']}**\n\tWinner: *{winner}*\n\tPriority: *{game['priority']}*\n\tGame total points: *{game['total_points']}*\n"
     return return_string
 
 
@@ -114,10 +123,62 @@ def get_insider_data(num_games):
 
 
 
+import discord
+from discord.ext import commands, tasks
+import asyncio
+
+DISCORD_TOKEN = "MTI0NzY0MDg4NDQxMDA1NjczNQ.G0iNRM.ntNyBTNQ9cGoVXm48Ozvr0IsfVwv6P73QWJ5lw"
+
+intents = discord.Intents.default()
+intents.messages = True
+
+bot = commands.Bot(command_prefix='!', intents=intents)
+
+user_id = 248942568480571393
+
+
+@tasks.loop(hours=24)
+async def get_the_daily_scoop():
+    if bot.is_ready():
+        user = await bot.fetch_user(user_id)
+        msg = "Hello, this is your daily reminder to update your picks!\n"
+        msg += "Here is a link to update them: https://www.pooltracker.com/w/season/picks_edit.asp?poolid=232361\n"
+        msg += "please enter the number of games displayed for this week (Even the completed games)"
+        await user.send(msg)
+
+@get_the_daily_scoop.before_loop
+async def before_daily_task():
+    # Calculate the initial delay until the next target time
+    now = datetime.datetime.now()
+    target_time = datetime.datetime.combine(now.date(), datetime.time(hour=7, minute=0))  # Example: 6:00 PM
+    if now > target_time:
+        # If the current time is past the target time, schedule for tomorrow
+        target_time += datetime.timedelta(days=1)
+    initial_delay = (target_time - now).total_seconds()
+    await asyncio.sleep(initial_delay)
+
+@bot.event
+async def on_message(message):
     
-game_points_list = get_dict_list(4)
-get_rankings(game_points_list)
+    if message.author == bot.user:
+        return
 
-print(get_insider_data(10))
+    # no guild = dm
+    try:
+        num = int(message.content)
+    except:
+        await message.channel.send("That couldn't be parsed in to an int")
+        return
+    
+    if message.guild is None:
+        await message.channel.send(get_insider_data(num) + "\n\n**If there are differences from the last time you submitted your picks, please update those now**")
 
+@bot.event
+async def on_ready():
+    get_the_daily_scoop.start()
+
+    
+
+
+bot.run(DISCORD_TOKEN)
 
