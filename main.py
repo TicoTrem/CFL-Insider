@@ -7,13 +7,6 @@ import datetime
 import sys
 
 
-
-        
-
-
-
-
-
 BASE_URL = "https://api.the-odds-api.com/v4/sports"
 API_KEY = sys.argv[1]
 SPORT_NAME = "/americanfootball_cfl"
