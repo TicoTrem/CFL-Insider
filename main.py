@@ -1,7 +1,10 @@
 
 from operator import itemgetter
+import time
 import requests
 import datetime
+
+import sys
 
 
 
@@ -12,7 +15,7 @@ import datetime
 
 
 BASE_URL = "https://api.the-odds-api.com/v4/sports"
-API_KEY = "31a579d1084fc35eab5070dfa28ea781"
+API_KEY = sys.argv[1]
 SPORT_NAME = "/americanfootball_cfl"
 
 def get_average_total_points_of_game(game):
@@ -127,7 +130,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 
-DISCORD_TOKEN = "MTI0NzY0MDg4NDQxMDA1NjczNQ.G0iNRM.ntNyBTNQ9cGoVXm48Ozvr0IsfVwv6P73QWJ5lw"
+DISCORD_TOKEN = sys.argv[2]
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -135,6 +138,8 @@ intents.messages = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 user_id = 248942568480571393
+
+reacted = False
 
 
 @tasks.loop(hours=24)
@@ -144,7 +149,14 @@ async def get_the_daily_scoop():
         msg = "Hello, this is your daily reminder to update your picks!\n"
         msg += "Here is a link to update them: https://www.pooltracker.com/w/season/picks_edit.asp?poolid=232361\n"
         msg += "please enter the number of games displayed for this week (Even the completed games)"
+
         await user.send(msg)
+        
+        time.sleep(2)
+
+        await user.send("Bro... You didn't react to the last message signaling you confirmed your picks are up to date. Please do that...")
+
+        
 
 @get_the_daily_scoop.before_loop
 async def before_daily_task():
@@ -174,8 +186,24 @@ async def on_message(message):
         await message.channel.send(get_insider_data(num) + "\n\n**If there are differences from the last time you submitted your picks, please update those now**")
 
 @bot.event
+async def on_reaction_add(reaction, user):
+    reacted = True
+
+@bot.event
 async def on_ready():
     get_the_daily_scoop.start()
+
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    # Check if the reaction is on a message the bot sent
+    if str(reaction.message.id) in message_reactions:
+        # Add the reaction to the stored reactions for this message
+        message_reactions[str(reaction.message.id)]["reactions"].append(str(reaction.emoji))
+
+        # Notify the user they reacted
+        await message_reactions[str(reaction.message.id)]["channel"].send(f"{user.mention} reacted with {reaction.emoji}!")
+
 
     
 
