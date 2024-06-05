@@ -3,7 +3,7 @@ import requests
 import datetime
 
 BASE_URL = "https://api.the-odds-api.com/v4/sports"
-API_KEY = "dc2b3ae29e6afb5a4ca7ab9dbdd6d2ad"
+API_KEY = "31a579d1084fc35eab5070dfa28ea781"
 SPORT_NAME = "/americanfootball_cfl"
 
 def get_average_total_points_of_game(game):
