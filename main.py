@@ -187,19 +187,7 @@ async def on_ready():
     get_the_daily_scoop.start()
 
 
-@bot.event
-async def on_reaction_add(reaction, user):
-    # Check if the reaction is on a message the bot sent
-    if str(reaction.message.id) in message_reactions:
-        # Add the reaction to the stored reactions for this message
-        message_reactions[str(reaction.message.id)]["reactions"].append(str(reaction.emoji))
-
-        # Notify the user they reacted
-        await message_reactions[str(reaction.message.id)]["channel"].send(f"{user.mention} reacted with {reaction.emoji}!")
-
-
     
 
 
 bot.run(DISCORD_TOKEN)
-
