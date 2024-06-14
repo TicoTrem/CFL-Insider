@@ -127,16 +127,26 @@ DISCORD_TOKEN = sys.argv[2]
 
 intents = discord.Intents.default()
 intents.messages = True
+intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 user_id = 248942568480571393
 
-reacted = False
+reacted = True
+
+
+@tasks.loop(hours=1)
+async def spam_to_update_picks():
+    global reacted
+    if reacted == False:
+        user = await bot.fetch_user(user_id)
+        await user.send("Bro... You didn't react to a message to signal your picks are up to date. Please do that...")
 
 
 @tasks.loop(hours=24)
 async def get_the_daily_scoop():
+    global reacted
     if bot.is_ready():
         user = await bot.fetch_user(user_id)
         msg = "Hello, this is your daily reminder to update your picks!\n"
@@ -144,23 +154,30 @@ async def get_the_daily_scoop():
         msg += "please enter the number of games displayed for this week (Even the completed games)"
 
         await user.send(msg)
+        reacted = False
         
-        time.sleep(2)
 
-        await user.send("Bro... You didn't react to the last message signaling you confirmed your picks are up to date. Please do that...")
 
-        
 
 @get_the_daily_scoop.before_loop
 async def before_daily_task():
+    await asyncio.sleep(get_delay(7, 0))
+    
+@spam_to_update_picks.before_loop
+async def before_daily_task():
+    # starts a little bit before the daily scoop so that it doesn't
+    # check if you reacted until around an hour
+    await asyncio.sleep(get_delay(6, 55))
+
+def get_delay(start_hour, start_minute):
     # Calculate the initial delay until the next target time
     now = datetime.datetime.now()
-    target_time = datetime.datetime.combine(now.date(), datetime.time(hour=7, minute=0))  # Example: 6:00 PM
+    target_time = datetime.datetime.combine(now.date(), datetime.time(hour=start_hour, minute=start_minute))
     if now > target_time:
         # If the current time is past the target time, schedule for tomorrow
         target_time += datetime.timedelta(days=1)
     initial_delay = (target_time - now).total_seconds()
-    await asyncio.sleep(initial_delay)
+
 
 @bot.event
 async def on_message(message):
@@ -179,12 +196,24 @@ async def on_message(message):
         await message.channel.send(get_insider_data(num) + "\n\n**If there are differences from the last time you submitted your picks, please update those now**")
 
 @bot.event
-async def on_reaction_add(reaction, user):
+async def on_raw_reaction_add(payload):
+    global reacted
+    print("got the reaction")
+    user_id = payload.user_id
+    print(user_id)
+    user = await bot.fetch_user(user_id)
+    if not user:
+        print("The user aint working")
+    await user.send("Confirming I got your reaction")
     reacted = True
+    
 
 @bot.event
 async def on_ready():
+    spam_to_update_picks.start()
+    time.sleep(1)
     get_the_daily_scoop.start()
+    
 
 
     
