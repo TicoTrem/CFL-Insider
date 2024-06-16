@@ -37,7 +37,7 @@ def get_average_home_weightings(game):
     # if the game does not have bookmaker data
     if not game['bookmakers']:
         return None
-    
+    print(len(game['bookmakers']))
     for bookmaker in game['bookmakers']:
         # the home and away markets seem to change order, have to check
         market1 = bookmaker['markets'][0]['outcomes'][0]
@@ -64,10 +64,10 @@ def get_dict_list(get_all: bool = False):
     today = datetime.date.today()
     start_of_week = today - datetime.timedelta(days=today.weekday() - 2)
     end_of_week = (start_of_week + datetime.timedelta(days=6))
-    spreads_response = requests.get(f"{BASE_URL}{SPORT_NAME}/odds?apiKey={API_KEY}&regions=uk,us,us2,eu,au&markets=spreads&all=true")
+    spreads_response = requests.get(f"{BASE_URL}{SPORT_NAME}/odds?apiKey={API_KEY}&regions=us,us2&markets=spreads&all=true")
     spreads_json_data = spreads_response.json()
 
-    totals_response = requests.get(f"{BASE_URL}{SPORT_NAME}/odds?apiKey={API_KEY}&regions=uk,us,us2,eu,au&markets=totals&=true")
+    totals_response = requests.get(f"{BASE_URL}{SPORT_NAME}/odds?apiKey={API_KEY}&regions=us,us2&markets=totals&=true")
     totals_json_data = totals_response.json()
 
     results = []
@@ -212,8 +212,8 @@ def get_quota_data():
     quota_results = requests.get(f"{BASE_URL}/?apiKey={API_KEY}")
     remaining = quota_results.headers["x-requests-remaining"]
     quota_results_json = quota_results.json()
-    # divided by 2 because each of our get_data calls makes 2 requests
-    return f"You have {int(int(remaining)/2)} API data usages left!"
+    # divided by 2 because each of our get_data calls makes 2 requests, each looking at us, and us2, which uses 4
+    return f"You have {int(int(remaining)/4)} API data usages left!"
 
 @bot.tree.command(name='panic', description='Simply dumps all of the game data that we have, regardless of dates')
 async def panic(ctx):
