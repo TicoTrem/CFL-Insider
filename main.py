@@ -79,7 +79,6 @@ def get_dict_list(get_all: bool = False):
 
     
     for nGame in range(0, len(spreads_json_data)):
-        print(nGame)
         game_dict = {}
         
         spread_game = spreads_json_data[nGame]
@@ -87,8 +86,6 @@ def get_dict_list(get_all: bool = False):
         game_time = spread_game["commence_time"]
         # iso datetime object formattinge
         game_time = datetime.datetime.strptime(game_time, "%Y-%m-%dT%H:%M:%S%z")
-        # print("Home team " +  spread_game['home_team'])
-        # print("before convert " + str(game_time))
 
         # convert to our timezone, then get rid of timezone data by just taking the resulting date
         game_time = game_time.astimezone(pytz.FixedOffset(-360)).date()
@@ -115,7 +112,7 @@ def get_dict_list(get_all: bool = False):
 
 
 # Returns a string to send as a discord message to the user
-def get_rankings(home_game_average_list, get_all: bool):
+def get_rankings(home_game_average_list, get_all: bool = False):
     # [{id:2o34823, home: roughriders, away: stampeders, home_average: -5.3}, {...}]
     new_list = sorted(home_game_average_list, key=lambda d: abs(d['home_average']))
 
@@ -145,7 +142,7 @@ def get_insider_data(is_panic: bool):
     dict_list = get_dict_list(is_panic)
     if dict_list and dict_list[0] == 'OUT_OF_USAGE_CREDITS':
         return "The current Odds API key is out of credits for this month!"
-    return_string = get_rankings(dict_list) + "\n\n**If there are differences from the last time you submitted your picks, please update those now**"
+    return_string = get_rankings(dict_list, is_panic) + "\n\n**If there are differences from the last time you submitted your picks, please update those now**"
     return return_string
 
 
@@ -159,7 +156,8 @@ intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='/', intents=intents)
+
 
 user_id = 248942568480571393
 
@@ -207,6 +205,8 @@ def get_delay(start_hour, start_minute):
         target_time += datetime.timedelta(days=1)
     initial_delay = (target_time - now).total_seconds()
 
+
+
 def get_quota_data():
     # this call does not use our quota
     quota_results = requests.get(f"{BASE_URL}/?apiKey={API_KEY}")
@@ -215,30 +215,30 @@ def get_quota_data():
     # divided by 2 because each of our get_data calls makes 2 requests
     return f"You have {int(int(remaining)/2)} API data usages left!"
 
-@bot.command(name='PANIC', help='Simply dumps all of the game data that we have, regardless of dates')
+@bot.tree.command(name='panic', description='Simply dumps all of the game data that we have, regardless of dates')
 async def panic(ctx):
     if ctx.guild is None:
         try:
-            await ctx.send(get_insider_data(True))
+            await ctx.response.send_message(get_insider_data(True))
         except:
-            await ctx.send("An unrecoverable error has occurred. Please check the server and its code!")
+            await ctx.response.send_message("An unrecoverable error has occurred. Please check the server and its code!")
 
-@bot.command(name='update', help='Gives an updated version of the data that is sent in the daily message.')
+@bot.tree.command(name='update', description='Gives an updated version of the data that is sent in the daily message.')
 async def panic(ctx):
     if ctx.guild is None:
         try:
-            await ctx.send(get_insider_data(False))
-        except:
-            await ctx.send("An unrecoverable error has occurred. Please check the server and its code!")
+            await ctx.response.send_message(get_insider_data(False))
+        except Exception as e:
+            await ctx.response.send_message("An unrecoverable error has occurred. Please check the server and its code!")
 
 
-@bot.command(name='usage', help='Shows the user how many more requests for data they can make that month before the API quota is reached.')
+@bot.tree.command(name='usage', description='Shows the user how many more requests for data they can make this month.')
 async def panic(ctx):
     if ctx.guild is None:
         try:
-            await ctx.send(get_quota_data)
+            await ctx.response.send_message(get_quota_data())
         except:
-            await ctx.send("An unrecoverable error has occurred. Please check the server and its code!")
+            await ctx.response.send_message("An unrecoverable error has occurred. Please check the server and its code!")
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -249,13 +249,9 @@ async def on_raw_reaction_add(payload):
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     spam_to_update_picks.start()
-    time.sleep(1)
     get_the_daily_scoop.start()
     
-
-
-    
-
 
 bot.run(DISCORD_TOKEN)
