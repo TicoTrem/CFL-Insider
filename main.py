@@ -187,8 +187,8 @@ async def get_the_daily_scoop():
 
 
 @get_the_daily_scoop.before_loop
-async def before_daily_task():
-    await asyncio.sleep(get_delay(7, 0))
+async def before_daily_task(): 
+    await asyncio.sleep(get_delay(7, 00))
     
 @spam_to_update_picks.before_loop
 async def before_daily_task():
@@ -204,6 +204,7 @@ def get_delay(start_hour, start_minute):
         # If the current time is past the target time, schedule for tomorrow
         target_time += datetime.timedelta(days=1)
     initial_delay = (target_time - now).total_seconds()
+    return initial_delay
 
 
 
